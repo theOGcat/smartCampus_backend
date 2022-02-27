@@ -90,7 +90,7 @@ app.post('/SignIn', async(req, res) => {
   console.log(results[0])
 
   if(results[0].length){
-    res.json(result[0])
+    res.json(results[0])
   }else{
     res.status(400).send("Email or Password Not Correct")
   }

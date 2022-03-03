@@ -1,6 +1,7 @@
 const express = require('express')
 const mysql = require('mysql2/promise')
 const cors = require('cors')
+const jwt = require('jsonwebtoken')
 const app = express()
 const port = 3001
 app.use(cors())
@@ -23,6 +24,22 @@ const test_connection = async () =>  {
   
 }
 
+const auth = async (req, res, next) => {
+    try {
+      const token = req.header('Authorization').replace('Bearer ', '')
+      const decoded = jwt.verify(token, 'comp499')
+
+      console.log(decoded)
+      
+      next()
+
+    } catch (error) {
+      res.status(401).send("Error: Please authenticate")
+    }
+
+}
+
+
 // test_connection()
 
 // connection.query(
@@ -37,7 +54,7 @@ const test_connection = async () =>  {
 //     }
 // })
 
-app.get('/', (req, res) => {
+app.get('/', auth,  (req, res) => {
   res.send('Hello World!')
 })
 
@@ -89,8 +106,15 @@ app.post('/SignIn', async(req, res) => {
   )
   console.log(results[0])
 
+  // if user validated
   if(results[0].length){
-    res.json(results[0])
+    const token = jwt.sign({User: results[0]}, 'comp499',{expiresIn: 300})
+    const UserInfo = {
+      user: results[0],
+      token
+    }
+
+    res.json(UserInfo)
   }else{
     res.status(400).send("Email or Password Not Correct")
   }
@@ -108,7 +132,7 @@ app.get('/commentls/:pageNum', async(req,res)=>{
 })
 
 //Insert Comment into the Blog section
-app.post('/commentInsert', async(req, res) => {
+app.post('/commentInsert', auth, async(req, res) => {
   const pageNum = req.body.pageNum;
   const userId = req.body.UserId;
   const content = req.body.content;

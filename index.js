@@ -57,7 +57,7 @@ const auth = async (req, res, next) => {
 app.get('/', auth,  (req, res) => {
   res.send('Hello World!')
 })
-
+ 
 /**
  * TODO
  * endpoints: 
@@ -108,9 +108,9 @@ app.post('/SignIn', async(req, res) => {
 
   // if user validated
   if(results[0].length){
-    const token = jwt.sign({User: results[0]}, 'comp499',{expiresIn: 300})
+    const token = jwt.sign({User: results[0][0]}, 'comp499',{expiresIn: 300})
     const UserInfo = {
-      user: results[0],
+      user: results[0][0],
       token
     }
 
@@ -123,11 +123,20 @@ app.post('/SignIn', async(req, res) => {
 // localhost:3001/commentls/pageNum
 app.get('/commentls/:pageNum', async(req,res)=>{
   const pageNum = req.params.pageNum;
-  const results = await connection.execute(
-    'SELECT * FROM comment WHERE `pageNum` = ?',
-    [pageNum]
-  )
+  try {
+    
+    const results = await connection.execute(
+      "SELECT FirstName, LastName, content FROM comment \
+        LEFT JOIN user ON comment.userId = user.userId \
+        WHERE `pageNum` = ? ",
+      [pageNum]
+    )
     console.log(results[0])
+
+    res.json(results[0])
+  } catch (error) {
+    res.status(500).send(error)
+  }
 
 })
 
@@ -136,12 +145,19 @@ app.post('/commentInsert', auth, async(req, res) => {
   const pageNum = req.body.pageNum;
   const userId = req.body.UserId;
   const content = req.body.content;
-  const results = await connection.execute(
-    'INSERT INTO comment (`userID`,`pageNum`,`content`) VALUES(?,?,?)', 
-    [userId,pageNum,content]
-  )
 
-  console.log(results)
+  try {
+    const results = await connection.execute(
+      'INSERT INTO comment (`userID`,`pageNum`,`content`) VALUES(?,?,?)', 
+      [userId,pageNum,content]
+    )
+  
+    console.log(results)
+    res.json(results[0])
+  } catch (error) {
+    console.error(error)
+    res.sendStatus(500)
+  }
 
 })
 
